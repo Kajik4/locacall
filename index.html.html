@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>LocaCall</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--bg:#0a0a0f;--sf:#13131a;--sf2:#1c1c26;--sf3:#252532;--ac:#7c5cfc;--ac2:#a78bfa;--gr:#22c55e;--rd:#ef4444;--tx:#f0eeff;--tx2:#9d9bb8;--tx3:#5c5a75;--bo:rgba(124,92,252,0.18);--bo2:rgba(124,92,252,0.38)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--tx);height:100vh;height:100dvh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:1px solid var(--bo);background:rgba(10,10,15,0.9);flex-shrink:0}
+.logo{font-size:21px;font-weight:800}.logo span{color:var(--ac2)}
+.hr{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tx2);font-family:'DM Mono',monospace}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gr);box-shadow:0 0 6px var(--gr);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#loading{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;color:var(--tx2);font-size:14px}
+.spinner{width:32px;height:32px;border:3px solid var(--bo2);border-top-color:var(--ac2);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#setup{flex:1;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.card{width:100%;max-width:420px;background:var(--sf);border:1px solid var(--bo);border-radius:20px;padding:28px;box-shadow:0 0 40px rgba(124,92,252,.15)}
+.ct{font-size:26px;font-weight:800;margin-bottom:4px}.cs{color:var(--tx2);font-size:13px;margin-bottom:22px;line-height:1.6}
+.fl{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+label{font-size:11px;font-weight:600;color:var(--tx2);letter-spacing:.08em;text-transform:uppercase}
+input[type=text]{background:var(--sf2);border:1px solid var(--bo);border-radius:10px;padding:11px 14px;color:var(--tx);font-family:'DM Mono',monospace;font-size:14px;outline:none;transition:border-color .2s}
+input[type=text]:focus{border-color:var(--ac2)}
+.avr{display:flex;gap:7px;flex-wrap:wrap}
+.av{width:42px;height:42px;border-radius:50%;border:2px solid transparent;background:var(--sf2);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.av.sel{border-color:var(--ac2);background:rgba(124,92,252,.2)}
+.sep{margin:16px 0;border-top:1px solid var(--bo)}
+.btn{width:100%;padding:13px;background:var(--ac);border:none;border-radius:11px;color:#fff;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--ac2)}.btng{background:var(--sf2);color:var(--tx);border:1px solid var(--bo2)}.btng:hover{background:var(--sf3)}
+.br{display:flex;gap:8px;margin-bottom:13px}
+.cbox{text-align:center;background:var(--sf2);border:1px solid var(--bo2);border-radius:11px;padding:13px;font-family:'DM Mono',monospace;font-size:22px;font-weight:500;letter-spacing:.12em;color:var(--ac2);margin-bottom:6px}
+.hint{font-size:11px;color:var(--tx3);text-align:center}
+#main{flex:1;display:none;flex-direction:column;overflow:hidden}
+.lw{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:9px;padding:9px 13px;font-size:12px;color:#f59e0b;display:none;align-items:center;gap:7px;margin:7px 10px;flex-shrink:0}
+#vp{flex:1;overflow-y:auto;padding:10px;flex-direction:column;gap:7px;display:none}
+#vm{flex:1;position:relative;display:none}
+#map{width:100%;height:100%} .leaflet-tile{filter:invert(1) hue-rotate(180deg) brightness(0.75) contrast(0.85);}
+#vc{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px}
+.pc{background:var(--sf);border:1px solid var(--bo);border-radius:13px;padding:13px 15px;display:flex;align-items:center;gap:11px}
+.pc.me{border-color:rgba(124,92,252,.4)}.pc.on{border-color:rgba(34,197,94,.25)}.pc.ic{border-color:var(--ac2);box-shadow:0 0 18px rgba(124,92,252,.2)}
+.pav{width:40px;height:40px;border-radius:50%;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.pi{flex:1;min-width:0}.pn{font-weight:700;font-size:14px}.ps{font-size:11px;color:var(--tx2);font-family:'DM Mono',monospace;margin-top:2px}
+.pa{display:flex;gap:5px;flex-shrink:0}
+.ab{width:34px;height:34px;border-radius:50%;border:1px solid var(--bo);background:var(--sf2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;transition:all .15s;color:var(--tx2)}
+.ab:hover{border-color:var(--ac2);color:var(--ac2)}.ab.call{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:var(--gr)}.ab.call:hover{background:var(--gr);color:#fff}
+.ab.hang{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:var(--rd)}
+.strow{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--tx2)}
+.tog{width:34px;height:18px;background:var(--sf3);border-radius:9px;position:relative;cursor:pointer;border:1px solid var(--bo2);transition:background .2s;flex-shrink:0}
+.tog.on{background:var(--ac)}.tog::after{content:'';position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s}.tog.on::after{left:18px}
+.empty{text-align:center;padding:36px 16px;color:var(--tx3);font-size:13px;line-height:1.8}.empty b{color:var(--ac2)}
+.cav{width:90px;height:90px;border-radius:50%;font-size:40px;background:var(--sf2);display:flex;align-items:center;justify-content:center;border:3px solid var(--ac2);box-shadow:0 0 35px rgba(124,92,252,.3)}
+.cnm{font-size:24px;font-weight:800}.cst{font-size:13px;color:var(--tx2);font-family:'DM Mono',monospace}
+.ctm{font-size:30px;font-weight:700;font-family:'DM Mono',monospace;color:var(--ac2)}
+.wf{display:flex;gap:3px;align-items:center;height:28px}
+.wb{width:3px;border-radius:2px;background:var(--ac2);animation:wave .8s ease-in-out infinite alternate}
+.wb:nth-child(2){animation-delay:.1s}.wb:nth-child(3){animation-delay:.2s}.wb:nth-child(4){animation-delay:.3s}.wb:nth-child(5){animation-delay:.4s}
+@keyframes wave{from{height:4px}to{height:22px}}
+.ctrls{display:flex;gap:14px;margin-top:10px}
+.cb{width:56px;height:56px;border-radius:50%;border:1px solid var(--bo2);background:var(--sf2);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.cb:hover{transform:scale(1.08)}.cb.end{background:var(--rd);border-color:var(--rd);color:#fff}
+#incoming{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:none;flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.icard{background:var(--sf);border:1px solid var(--ac2);border-radius:22px;padding:36px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:0 0 40px rgba(124,92,252,.3);animation:su .3s ease}
+@keyframes su{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.ilab{font-size:11px;color:var(--tx2);letter-spacing:.1em;text-transform:uppercase;font-weight:600}.inm{font-size:26px;font-weight:800}
+.ictrl{display:flex;gap:18px;margin-top:6px}
+.ib{width:64px;height:64px;border-radius:50%;border:none;font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.ib:hover{transform:scale(1.1)}.iacc{background:var(--gr);animation:ring 1s ease-in-out infinite}.idec{background:var(--rd)}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.6)}50%{box-shadow:0 0 0 14px rgba(34,197,94,0)}}
+.mctrl{position:absolute;top:10px;right:10px;z-index:1000;display:flex;flex-direction:column;gap:5px}
+.mcb{width:34px;height:34px;background:rgba(13,13,20,.9);border:1px solid var(--bo2);border-radius:8px;color:var(--tx2);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.eta{position:absolute;bottom:70px;left:50%;transform:translateX(-50%);background:rgba(13,13,20,.92);border:1px solid var(--bo2);border-radius:12px;padding:10px 16px;font-size:12px;color:var(--tx2);white-space:nowrap;z-index:1000;display:none}.eta b{color:var(--tx)}
+.bnav{display:flex;border-top:1px solid var(--bo);background:var(--sf);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,12px)}
+.nb{flex:1;padding:10px 6px;background:transparent;border:none;color:var(--tx3);font-family:'Syne',sans-serif;font-size:10px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .15s}
+.nb.active{color:var(--ac2)}.ni{font-size:19px}
+.notif{position:fixed;top:68px;left:50%;transform:translateX(-50%);background:var(--sf2);border:1px solid var(--bo2);border-radius:9px;padding:9px 16px;font-size:12px;z-index:8888;animation:nI .3s ease,nO .3s ease 2.7s forwards;white-space:nowrap;pointer-events:none}
+@keyframes nI{from{opacity:0;top:78px}to{opacity:1;top:68px}}@keyframes nO{to{opacity:0;top:58px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="logo">Loca<span>Call</span></div>
+  <div class="hr">
+    <span id="hroom" style="display:none">místnost: <b style="color:var(--ac2)" id="hcode"></b></span>
+    <div class="dot" id="hdot" style="display:none"></div>
+  </div>
+</header>
+<div id="loading"><div class="spinner"></div><span>Načítám Firebase…</span></div>
+<div id="setup">
+  <div class="card">
+    <div class="ct">Připojit se</div>
+    <div class="cs">Real-time sdílení polohy a volání. Vytvořte místnost nebo zadejte kód přátel.</div>
+    <div class="fl"><label>Vaše jméno</label><input type="text" id="iname" placeholder="Jan Novák" maxlength="20"></div>
+    <div class="fl"><label>Avatar</label>
+      <div class="avr" id="avgrid">
+        <button class="av sel" data-e="🧑">🧑</button><button class="av" data-e="👩">👩</button>
+        <button class="av" data-e="🧔">🧔</button><button class="av" data-e="👱">👱</button>
+        <button class="av" data-e="🧓">🧓</button><button class="av" data-e="🤖">🤖</button>
+        <button class="av" data-e="👽">👽</button><button class="av" data-e="🦊">🦊</button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="br">
+      <button class="btn btng" id="bcreate">Vytvořit místnost</button>
+      <button class="btn" id="bshowjoin">Připojit se</button>
+    </div>
+    <div id="jsec" style="display:none">
+      <div class="fl"><label>Kód místnosti</label>
+        <input type="text" id="iroom" placeholder="XXXX" maxlength="6" style="letter-spacing:.15em;text-transform:uppercase;font-size:18px;text-align:center">
+      </div>
+      <button class="btn" id="bjoin">Vstoupit →</button>
+    </div>
+    <div id="csec" style="display:none;margin-top:14px">
+      <div class="cbox" id="ccode"></div>
+      <div class="hint">Sdílejte kód s přáteli (max. 5 účastníků)</div>
+      <button class="btn" id="benter" style="margin-top:11px">Vstoupit do místnosti →</button>
+    </div>
+  </div>
+</div>
+<div id="main">
+  <div class="lw" id="lwarn">⚠️ GPS není dostupná — simuluji polohu v Praze</div>
+  <div id="vp"></div>
+  <div id="vm"><div id="map"></div>
+    <div class="mctrl"><button class="mcb" id="mcme">📍</button><button class="mcb" id="mcall">👥</button></div>
+    <div class="eta" id="etabox"></div>
+  </div>
+  <div id="vc">
+    <div class="cav" id="cav">🧑</div><div class="cnm" id="cnm">-</div>
+    <div class="cst" id="cst">Volám…</div>
+    <div class="wf" id="wf" style="display:none"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+    <div class="ctm" id="ctm" style="display:none">0:00</div>
+    <div class="ctrls"><button class="cb" id="bmute">🎤</button><button class="cb end" id="bend">📵</button><button class="cb" id="bspk">🔊</button></div>
+  </div>
+  <nav class="bnav">
+    <button class="nb active" data-v="p" onclick="sv('p')"><span class="ni">👥</span>Účastníci</button>
+    <button class="nb" data-v="m" onclick="sv('m')"><span class="ni">🗺️</span>Mapa</button>
+    <button class="nb" data-v="c" id="cnav" style="display:none" onclick="sv('c')"><span class="ni">📞</span>Hovor</button>
+  </nav>
+</div>
+</div>
+<div id="incoming">
+  <div class="icard">
+    <div class="ilab">Příchozí hovor</div>
+    <div class="cav" id="iav">🧑</div><div class="inm" id="inm">-</div>
+    <div class="wf"><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div><div class="wb"></div></div>
+    <div class="ictrl"><button class="ib iacc" id="iacc">📞</button><button class="ib idec" id="idec">📵</button></div>
+  </div>
+</div>
+
+<!-- ALL scripts at bottom, in order, no onload attributes -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+// Firebase is guaranteed loaded here because scripts above are synchronous
+firebase.initializeApp({
+  apiKey: "AIzaSyBTq6VAKgZYLXcQ5XlcRnUfVbMDP_lS7w8",
+  authDomain: "locacall.firebaseapp.com",
+  databaseURL: "https://locacall-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "locacall",
+  storageBucket: "locacall.firebasestorage.app",
+  messagingSenderId: "188892091041",
+  appId: "1:188892091041:web:06198fdc586af7807dd6e0"
+});
+var db = firebase.database();
+
+// Hide spinner, show setup
+document.getElementById('loading').style.display = 'none';
+document.getElementById('setup').style.display = 'flex';
+
+// ── State ──────────────────────────────────────────────
+var myId = 'u_' + Math.random().toString(36).slice(2,8);
+var myName = '', myEmoji = '🧑', room = '';
+var myLat = null, myLng = null, locOn = true;
+var parts = {}, leafMap = null, myMarker = null, mks = {};
+var call = null, callSec = 0, callIv = null, muted = false;
+var stream = null, pcs = {};
+var myRef, lRef;
+
+// ── Avatar ─────────────────────────────────────────────
+document.getElementById('avgrid').onclick = function(e) {
+  var b = e.target.closest('.av'); if (!b) return;
+  document.querySelectorAll('.av').forEach(function(x){ x.classList.remove('sel'); });
+  b.classList.add('sel'); myEmoji = b.dataset.e;
+};
+
+// ── Setup buttons ──────────────────────────────────────
+document.getElementById('bcreate').onclick = function() {
+  var n = document.getElementById('iname').value.trim();
+  if (!n) { alert('Zadejte jméno'); return; }
+  myName = n;
+  room = Math.random().toString(36).slice(2,6).toUpperCase();
+  document.getElementById('ccode').textContent = room;
+  document.getElementById('csec').style.display = 'block';
+  document.getElementById('jsec').style.display = 'none';
+};
+document.getElementById('bshowjoin').onclick = function() {
+  var j = document.getElementById('jsec');
+  j.style.display = j.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('csec').style.display = 'none';
+};
+document.getElementById('bjoin').onclick = function() {
+  var n = document.getElementById('iname').value.trim();
+  var c = document.getElementById('iroom').value.trim().toUpperCase();
+  if (!n) { alert('Zadejte jméno'); return; }
+  if (c.length < 4) { alert('Zadejte platný kód místnosti'); return; }
+  myName = n; room = c; enterRoom();
+};
+document.getElementById('benter').onclick = enterRoom;
+document.getElementById('bend').onclick = function() { endCall(true); };
+document.getElementById('bmute').onclick = function() {
+  muted = !muted; this.textContent = muted ? '🔇' : '🎤';
+  if (stream) stream.getAudioTracks().forEach(function(t) { t.enabled = !muted; });
+};
+
+// ── Enter room ─────────────────────────────────────────
+function enterRoom() {
+  db.ref('rooms/' + room + '/participants').once('value')
+    .then(function(snap) {
+      var cnt = snap.exists() ? Object.keys(snap.val()).length : 0;
+      if (cnt >= 5) { alert('Místnost je plná (max. 5 účastníků)'); return; }
+      myRef = db.ref('rooms/' + room + '/participants/' + myId);
+      lRef  = db.ref('rooms/' + room + '/locations/' + myId);
+      myRef.set({ name: myName, emoji: myEmoji, ts: firebase.database.ServerValue.TIMESTAMP });
+      myRef.onDisconnect().remove();
+      lRef.onDisconnect().remove();
+      document.getElementById('hcode').textContent = room;
+      document.getElementById('hroom').style.display = 'inline';
+      document.getElementById('hdot').style.display = 'block';
+      document.getElementById('setup').style.display = 'none';
+      var m = document.getElementById('main');
+      m.style.display = 'flex'; m.style.flexDirection = 'column';
+      listenParts(); listenLocs(); listenSigs(); startGPS(); sv('p');
+      window.addEventListener('beforeunload', function() { myRef.remove(); lRef.remove(); });
+
+      // Když se mobil probudí — znovu se připoj do místnosti
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+          myRef.set({ name: myName, emoji: myEmoji, ts: firebase.database.ServerValue.TIMESTAMP });
+          myRef.onDisconnect().remove();
+          lRef.onDisconnect().remove();
+          pushLoc();
+        }
+      });
+    })
+    .catch(function(err) { alert('Chyba Firebase: ' + err.message); });
+}
+
+// ── Participants ───────────────────────────────────────
+function listenParts() {
+  db.ref('rooms/' + room + '/participants').on('value', function(snap) {
+    parts = {};
+    if (snap.exists()) snap.forEach(function(c) {
+      if (c.key !== myId) parts[c.key] = Object.assign({ id: c.key, lat: null, lng: null }, c.val());
+    });
+    renderParts();
+  });
+}
+function listenLocs() {
+  db.ref('rooms/' + room + '/locations').on('value', function(snap) {
+    if (!snap.exists()) return;
+    snap.forEach(function(c) {
+      if (c.key === myId) return;
+      if (parts[c.key]) { parts[c.key].lat = c.val().lat; parts[c.key].lng = c.val().lng; updMk(c.key); etaCalc(); }
+    });
+    renderParts();
+  });
+}
+
+// ── Signals ────────────────────────────────────────────
+function listenSigs() {
+  db.ref('rooms/' + room + '/signals/' + myId).on('child_added', function(snap) { handleSig(snap.val()); });
+}
+function sendSig(toId, msg) {
+  msg.from = myId; msg.fromName = myName; msg.fromEmoji = myEmoji;
+  db.ref('rooms/' + room + '/signals/' + toId).push(msg);
+}
+function clrSig() { db.ref('rooms/' + room + '/signals/' + myId).remove(); }
+function handleSig(msg) {
+  switch(msg.type) {
+    case 'call_offer': showIncoming(msg); break;
+    case 'call_answer':
+      if (call && call.pid === msg.from) {
+        call.status = 'active'; startTimer();
+        document.getElementById('cst').textContent = 'Připojeno';
+        document.getElementById('wf').style.display = 'flex';
+        document.getElementById('ctm').style.display = 'block';
+        if (pcs[msg.from] && msg.sdp) pcs[msg.from].setRemoteDescription(new RTCSessionDescription(msg.sdp)).catch(function(){});
+      }
+      break;
+    case 'call_decline': if (call) { endCall(false); notif('📵 ' + msg.fromName + ' odmítl/a hovor'); } break;
+    case 'call_end': if (call && call.pid === msg.from) { endCall(false); notif('📵 Hovor ukončen'); } break;
+    case 'ice': if (pcs[msg.from] && msg.candidate) pcs[msg.from].addIceCandidate(new RTCIceCandidate(msg.candidate)).catch(function(){}); break;
+  }
+}
+
+// ── GPS ────────────────────────────────────────────────
+function startGPS() {
+  if (!navigator.geolocation) { simGPS(); return; }
+  navigator.geolocation.watchPosition(
+    function(p) { myLat = p.coords.latitude; myLng = p.coords.longitude; pushLoc(); updMyM(); etaCalc(); },
+    function() { simGPS(); }, { enableHighAccuracy: true, maximumAge: 4000 }
+  );
+}
+function simGPS() {
+  document.getElementById('lwarn').style.display = 'flex';
+  myLat = 50.075 + (Math.random()-.5)*.015; myLng = 14.437 + (Math.random()-.5)*.015;
+  pushLoc(); updMyM();
+  setInterval(function() { myLat += (Math.random()-.5)*.0003; myLng += (Math.random()-.5)*.0003; pushLoc(); updMyM(); etaCalc(); }, 5000);
+}
+function pushLoc() {
+  if (!locOn || !myLat || !lRef) return;
+  lRef.set({ lat: myLat, lng: myLng, ts: firebase.database.ServerValue.TIMESTAMP });
+}
+
+// ── Map ────────────────────────────────────────────────
+function initMap() {
+  if (leafMap) return;
+  leafMap = L.map('map').setView([50.075, 14.437], 13);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM © CARTO', maxZoom: 19 }).addTo(leafMap);
+  document.getElementById('mcme').onclick = function() { if (myLat) leafMap.setView([myLat, myLng], 16); };
+  document.getElementById('mcall').onclick = function() {
+    var pts = []; if (myLat) pts.push([myLat, myLng]);
+    Object.values(parts).forEach(function(p) { if (p.lat) pts.push([p.lat, p.lng]); });
+    if (pts.length > 1) leafMap.fitBounds(pts, { padding: [40,40] }); else if (pts.length === 1) leafMap.setView(pts[0], 15);
+  };
+  if (myLat) updMyM(); Object.keys(parts).forEach(updMk);
+}
+function mkIcon(emoji, accent) {
+  var bg = accent ? '#7c5cfc' : '#1c1c26', bd = accent ? 'white' : 'rgba(124,92,252,.6)';
+  return L.divIcon({ className: '', iconSize: [36,36], iconAnchor: [18,18],
+    html: '<div style="background:'+bg+';width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;border:2.5px solid '+bd+';box-shadow:0 2px 8px rgba(0,0,0,.5)">'+emoji+'</div>'});
+}
+function updMyM() {
+  if (!leafMap || !myLat) return;
+  if (!myMarker) myMarker = L.marker([myLat,myLng],{icon:mkIcon(myEmoji,true)}).addTo(leafMap).bindPopup('<b>Já ('+myName+')</b>');
+  else myMarker.setLatLng([myLat, myLng]);
+}
+function updMk(pid) {
+  if (!leafMap) return; var p = parts[pid]; if (!p || !p.lat) return;
+  if (!mks[pid]) mks[pid] = L.marker([p.lat,p.lng],{icon:mkIcon(p.emoji,false)}).addTo(leafMap).bindPopup('<b>'+p.name+'</b>');
+  else mks[pid].setLatLng([p.lat, p.lng]);
+}
+function etaCalc() {
+  if (!myLat) return;
+  var o = Object.values(parts).filter(function(p) { return p.lat && p.lng; });
+  if (!o.length) { document.getElementById('etabox').style.display='none'; return; }
+  var minD=Infinity, near=null;
+  o.forEach(function(p) { var d=hav(myLat,myLng,p.lat,p.lng); if(d<minD){minD=d;near=p;} });
+  var dist=minD<1000?Math.round(minD)+'m':(minD/1000).toFixed(1)+'km';
+  var w=Math.max(1,Math.round(minD/80)), dr=Math.max(1,Math.round(minD/600));
+  var b=document.getElementById('etabox');
+  b.innerHTML='<b>'+near.name+'</b> — '+dist+' &nbsp;|&nbsp; 🚶 '+w+'min &nbsp; 🚗 '+dr+'min'; b.style.display='block';
+}
+function hav(a,b,c,d){var R=6371000,dL=(c-a)*Math.PI/180,dl=(d-b)*Math.PI/180,x=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dl/2)*Math.sin(dl/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+// ── Views ──────────────────────────────────────────────
+function sv(v) {
+  document.querySelectorAll('.nb').forEach(function(b){b.classList.toggle('active',b.dataset.v===v);});
+  var vp=document.getElementById('vp'),vm=document.getElementById('vm'),vc=document.getElementById('vc');
+  vp.style.display=v==='p'?'flex':'none'; if(v==='p')vp.style.flexDirection='column';
+  vm.style.display=v==='m'?'block':'none';
+  vc.style.display=v==='c'?'flex':'none'; if(v==='c')vc.style.flexDirection='column';
+  if(v==='m') setTimeout(function(){initMap();if(leafMap)leafMap.invalidateSize();},100);
+}
+function toggleLoc() {
+  locOn=!locOn; var el=document.getElementById('ltog'); if(el)el.className='tog'+(locOn?' on':'');
+  if(!locOn&&lRef)lRef.remove(); else pushLoc();
+  notif(locOn?'📍 Sdílení polohy zapnuto':'🔒 Poloha skryta');
+}
+function locUser(pid) {
+  var p=parts[pid]; if(!p||!p.lat){notif('⚠️ Poloha není k dispozici');return;}
+  sv('m'); setTimeout(function(){initMap();if(leafMap){leafMap.setView([p.lat,p.lng],16);leafMap.invalidateSize();}},120);
+}
+
+// ── Render ─────────────────────────────────────────────
+function renderParts() {
+  var c=document.getElementById('vp'); c.innerHTML='';
+  var mc=document.createElement('div'); mc.className='pc me';
+  mc.innerHTML='<div class="pav">'+myEmoji+'</div>'+
+    '<div class="pi"><div class="pn">'+myName+' <span style="font-size:10px;color:var(--ac2);font-family:\'DM Mono\',monospace">VY</span></div>'+
+    '<div class="ps"><div class="strow"><div class="tog '+(locOn?'on':'')+'" id="ltog" onclick="toggleLoc()"></div>Sdílení polohy</div></div></div>'+
+    '<div class="pa"><div style="font-size:10px;color:var(--tx3);font-family:\'DM Mono\',monospace;text-align:right">'+(myLat?'📍 '+myLat.toFixed(4)+'<br>'+myLng.toFixed(4):'📍 –')+'</div></div>';
+  c.appendChild(mc);
+  var keys=Object.keys(parts);
+  if(!keys.length){var e=document.createElement('div');e.className='empty';e.innerHTML='Zatím nikdo v místnosti<br><b>'+room+'</b> — sdílejte kód s přáteli';c.appendChild(e);return;}
+  keys.forEach(function(pid){
+    var p=parts[pid],inCall=call&&call.pid===pid;
+    var d=(myLat&&p.lat)?(function(){var x=hav(myLat,myLng,p.lat,p.lng);return x<1000?Math.round(x)+'m':(x/1000).toFixed(1)+'km';})():'–';
+    var el=document.createElement('div'); el.className='pc on'+(inCall?' ic':'');
+    el.innerHTML='<div class="pav">'+p.emoji+'</div>'+
+      '<div class="pi"><div class="pn">'+p.name+'</div><div class="ps">'+(p.lat?'📍 '+d+' od vás':'📍 Poloha neznámá')+'</div></div>'+
+      '<div class="pa">'+(inCall?'<button class="ab hang" onclick="endCall(true)">📵</button>':'<button class="ab call" onclick="startCall(\''+pid+'\')">📞</button>')+'<button class="ab" onclick="locUser(\''+pid+'\')">🗺️</button></div>';
+    c.appendChild(el);
+  });
+}
+
+// ── Call ───────────────────────────────────────────────
+function startCall(pid) {
+  var peer=parts[pid]; if(!peer)return;
+  call={pid:pid,status:'calling'};
+  document.getElementById('cnav').style.display='flex'; sv('c');
+  document.getElementById('cav').textContent=peer.emoji; document.getElementById('cnm').textContent=peer.name;
+  document.getElementById('cst').textContent='Volám…'; document.getElementById('wf').style.display='none'; document.getElementById('ctm').style.display='none';
+  renderParts();
+  navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(s){
+    stream=s; var pc=mkPC(pid,s); pcs[pid]=pc;
+    pc.createOffer().then(function(o){return pc.setLocalDescription(o).then(function(){sendSig(pid,{type:'call_offer',sdp:o});});}).catch(function(){});
+  }).catch(function(){sendSig(pid,{type:'call_offer'});});
+}
+function mkPC(pid,s){
+  var pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  if(s)s.getTracks().forEach(function(t){pc.addTrack(t,s);});
+  pc.onicecandidate=function(e){if(e.candidate)sendSig(pid,{type:'ice',candidate:e.candidate});};
+  pc.ontrack=function(e){var a=new Audio();a.srcObject=e.streams[0];a.autoplay=true;};
+  return pc;
+}
+function showIncoming(msg){
+  document.getElementById('iav').textContent=msg.fromEmoji; document.getElementById('inm').textContent=msg.fromName;
+  document.getElementById('incoming').style.display='flex';
+  document.getElementById('iacc').onclick=function(){
+    document.getElementById('incoming').style.display='none';
+    call={pid:msg.from,status:'active'};
+    document.getElementById('cnav').style.display='flex'; sv('c');
+    document.getElementById('cav').textContent=msg.fromEmoji; document.getElementById('cnm').textContent=msg.fromName;
+    document.getElementById('cst').textContent='Připojeno'; document.getElementById('wf').style.display='flex'; document.getElementById('ctm').style.display='block';
+    startTimer(); renderParts();
+    navigator.mediaDevices.getUserMedia({audio:true,video:false}).then(function(s){
+      stream=s; var pc=mkPC(msg.from,s); pcs[msg.from]=pc;
+      if(msg.sdp){pc.setRemoteDescription(new RTCSessionDescription(msg.sdp)).then(function(){return pc.createAnswer();}).then(function(ans){return pc.setLocalDescription(ans).then(function(){sendSig(msg.from,{type:'call_answer',sdp:ans});});}).catch(function(){});}
+      else sendSig(msg.from,{type:'call_answer'});
+    }).catch(function(){sendSig(msg.from,{type:'call_answer'});});
+    clrSig();
+  };
+  document.getElementById('idec').onclick=function(){document.getElementById('incoming').style.display='none';sendSig(msg.from,{type:'call_decline'});clrSig();};
+}
+function endCall(notify){
+  if(callIv){clearInterval(callIv);callIv=null;}
+  if(notify&&call)sendSig(call.pid,{type:'call_end'});
+  if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
+  Object.values(pcs).forEach(function(pc){pc.close();}); pcs={};
+  call=null; callSec=0; document.getElementById('cnav').style.display='none';
+  sv('p'); renderParts(); clrSig();
+}
+function startTimer(){
+  callSec=0; if(callIv)clearInterval(callIv);
+  callIv=setInterval(function(){callSec++;var m=Math.floor(callSec/60),s=callSec%60;document.getElementById('ctm').textContent=m+':'+String(s).padStart(2,'0');},1000);
+}
+function notif(t){
+  document.querySelectorAll('.notif').forEach(function(e){e.remove();});
+  var el=document.createElement('div');el.className='notif';el.textContent=t;
+  document.body.appendChild(el);setTimeout(function(){el.remove();},3200);
+}
+</script>
+</body>
+</html>
